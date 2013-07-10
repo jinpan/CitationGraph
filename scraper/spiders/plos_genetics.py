@@ -1,9 +1,13 @@
 from itertools import product
+from json import loads
+from os import path
 
 from scrapy.spider import BaseSpider
 from scrapy.selector import HtmlXPathSelector
 
 from scraper.items import PaperItem
+
+from CitationGraph import config
 
 class PLOSGeneticsIssueSpider(BaseSpider):
     name = 'plos_genetics'
@@ -43,4 +47,29 @@ class PLOSGeneticsIssueSpider(BaseSpider):
             papers.append(paper)
         return papers
 
+
+class PLOSGeneticsArticleSpider(BaseSpider):
+    from django.conf import settings as django_settings
+    from CitationGraph.CitationGraph import settings as project_settings
+    django_settings.configure(**project_settings.DATABASES['default'])
+    from CitationGraph.website import models
+
+    name = 'plos_genetics'
+    allowed_domains = ['plos_genetics.org']
+
+    def __init__(self):
+        self.start_urls = []
+        file_name = path.join(config.root_directory, 'mined', 'plos_genetics.json')
+        data = loads(open(file_name).read())
+
+        for item in data:
+            self.start_urls.append(data['href'])
+
+        super(PLOSGeneticsArticleSpider, self).__init__()
+
+    def parse(self, response):
+        hxs = HtmlXPathSelector(response)
+
+        title = hxs.select()
+        publication_date = hxs.select()
 
